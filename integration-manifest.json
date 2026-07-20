@@ -1,0 +1,73 @@
+{
+  "$schema": "https://keyfactor.github.io/v2/integration-manifest-schema.json",
+  "integration_type": "dns-plugin",
+  "name": "Microsoft Active Directory DNS Plugin",
+  "status": "pilot",
+  "support_level": "kf-community",
+  "update_catalog": true,
+  "link_github": false,
+  "description": "DNS domain-control validation provider for Microsoft Windows Server DNS (traditional and Active Directory-integrated). Implements the IDomainValidator interface to create, manage, and clean up DNS records (TXT for ACME dns-01, CNAME for CNAME-based DCV) by running the built-in DnsServer PowerShell cmdlets on the target DNS server over WinRM remote PowerShell. V1 is Windows-only.",
+  "release_dir": "Keyfactor.DnsProvider.MicrosoftAD/bin/Release",
+  "release_project": "Keyfactor.DnsProvider.MicrosoftAD/Keyfactor.DnsProvider.MicrosoftAD.csproj",
+  "about": {
+    "dns_provider": {
+      "providerName": "microsoft-activedirectory-dns",
+      "displayName": "Microsoft Active Directory DNS",
+      "assemblyName": "MicrosoftAdDomainValidator",
+      "fullyQualifiedClassName": "Keyfactor.Extensions.DomainValidator.MicrosoftAD.MicrosoftAdDomainValidator",
+      "validationType": "dns-01",
+      "dns_provider_config": [
+        {
+          "Name": "AD_DnsServer",
+          "DisplayName": "DNS Server",
+          "DataType": 1,
+          "InstanceLevel": false,
+          "Hidden": false,
+          "DefaultValue": "",
+          "Required": true,
+          "Description": "Hostname or FQDN of the Windows DNS server (typically a domain controller), reached over WinRM remote PowerShell."
+        },
+        {
+          "Name": "AD_Username",
+          "DisplayName": "Username",
+          "DataType": 1,
+          "InstanceLevel": false,
+          "Hidden": false,
+          "DefaultValue": "",
+          "Required": false,
+          "Description": "User for the WinRM session, as DOMAIN\\user or user@domain. Leave empty to use the gateway service account identity (Kerberos/Negotiate)."
+        },
+        {
+          "Name": "AD_Password",
+          "DisplayName": "Password",
+          "DataType": 2,
+          "InstanceLevel": false,
+          "Hidden": true,
+          "DefaultValue": "",
+          "Required": false,
+          "Description": "Password for the username. Required only when a username is supplied. Stored as a secret."
+        },
+        {
+          "Name": "AD_Zone",
+          "DisplayName": "Zone (override)",
+          "DataType": 1,
+          "InstanceLevel": false,
+          "Hidden": false,
+          "DefaultValue": "",
+          "Required": false,
+          "Description": "Explicit forward-lookup zone to write records into. Leave empty to resolve the zone automatically by longest matching suffix of the record name."
+        },
+        {
+          "Name": "AD_UseSSL",
+          "DisplayName": "Use WinRM over HTTPS",
+          "DataType": 1,
+          "InstanceLevel": false,
+          "Hidden": false,
+          "DefaultValue": "false",
+          "Required": false,
+          "Description": "Use WinRM over HTTPS (port 5986) instead of HTTP (port 5985). 'true' or 'false' (default 'false')."
+        }
+      ]
+    }
+  }
+}

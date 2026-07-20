@@ -1,0 +1,14 @@
+{
+  "extensions": {
+    "Keyfactor.AnyGateway.Extensions.IDomainValidator": {
+      "MicrosoftAdDomainValidator": {
+        "assemblypath": "MicrosoftAdDomainValidator.dll",
+        "TypeFullName": "Keyfactor.Extensions.DomainValidator.MicrosoftAD.MicrosoftAdDomainValidator"
+      },
+      "MicrosoftAdCnameDomainValidator": {
+        "assemblypath": "MicrosoftAdDomainValidator.dll",
+        "TypeFullName": "Keyfactor.Extensions.DomainValidator.MicrosoftAD.MicrosoftAdCnameDomainValidator"
+      }
+    }
+  }
+}
