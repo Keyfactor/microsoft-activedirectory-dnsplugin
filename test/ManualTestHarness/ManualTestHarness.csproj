@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <!-- Must match the plugin's TargetFramework. WSMan remote PowerShell is Windows-only at runtime. -->
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <RootNamespace>ManualTestHarness</RootNamespace>
+    <AssemblyName>ManualTestHarness</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Reference the plugin project directly so we can drive the internal provider. -->
+    <ProjectReference Include="..\..\Keyfactor.DnsProvider.MicrosoftAD\Keyfactor.DnsProvider.MicrosoftAD.csproj" />
+  </ItemGroup>
+</Project>
