@@ -47,27 +47,41 @@ The DLL ships **two validator types**:
 
 When configuring a Domain Validation Configuration in the gateway UI, pick the validator type that matches the CA's requirement — TXT/`dns-01` for ACME, CNAME/`cname` for CAs that validate via CNAME. Both share the same connection and configuration fields.
 
-**V1 is Windows-only.** Records are managed by opening a WinRM remote PowerShell session from the gateway host to the target DNS server and running the built-in `DnsServer` module cmdlets there. For TXT staging, existing values at the same name are preserved and the new value is appended, so co-existing ACME challenges (a wildcard and the apex domain both producing `_acme-challenge` TXT values) coexist. For CNAME staging, the record is replaced since a CNAME is singular per name. The owning zone for an FQDN is resolved by selecting the hosted forward-lookup zone whose name is the longest matching suffix of the record name (unless `AD_Zone` overrides it).
+### How it works (V1)
+
+V1 is **Windows-only**. The plugin manages records by opening a **WinRM remote PowerShell** session from the gateway host to the target DNS server and running the built-in `DnsServer` module cmdlets (`Get-DnsServerZone`, `Add-DnsServerResourceRecord`, `Get-DnsServerResourceRecord`, `Remove-DnsServerResourceRecord`) on that server. Because it relies on the Windows WS-Management client, the gateway must run on a Windows platform.
+
+- **TXT staging** is additive: a new TXT value is added alongside any existing TXT values at the same name, so co-existing ACME challenges (a wildcard and the apex domain both producing `_acme-challenge` TXT values) coexist.
+- **CNAME staging** replaces the record: a CNAME is singular per name by DNS rules, so any existing CNAME at the name is removed before the new one is added.
+- **Cleanup** removes the managed record. For TXT, when a specific value is supplied only that value is removed and any co-existing values are preserved; a record that is already absent is treated as clean (success).
+
+The owning zone for a given FQDN is resolved by listing the server's forward-lookup zones and selecting the one whose name is the longest matching suffix of the record name, unless `AD_Zone` overrides it.
+
+> **Authentication mechanism (V1 decision):** V1 uses remote PowerShell over WinRM, which constrains the gateway to a Windows host. A future version may add a native Kerberos DNS-update client (RFC 2136 / GSS-TSIG) to remove the Windows-host requirement — tracked as a follow-up.
 
 ## Features
 
-- Automated DNS TXT (dns-01) and CNAME (cname) record creation and deletion on Microsoft Windows Server DNS
-- Runs the built-in `DnsServer` PowerShell cmdlets on the target server over WinRM remote PowerShell
-- Authenticates with an explicit WinRM credential or the gateway service account identity (Kerberos/Negotiate); optional WinRM over HTTPS
-- Automatic hosted-zone discovery by longest DNS-name suffix match, with an optional explicit zone override
+- Automated DNS TXT record creation and deletion in Microsoft Active Directory DNS
 
 ## Requirements
 
 ### Keyfactor Platform
 - Keyfactor AnyCA Gateway REST **26.2 or later** (DNS validation support was added in AnyCA Gateway 26.2)
+- A gateway product that supports DNS-01 domain validation (ACME REST Gateway, DigiCert, Sectigo, etc.)
+
+### Microsoft Active Directory DNS Requirements
+
+### Keyfactor platform
+
+- Keyfactor AnyCA Gateway REST **26.2 or later** (DNS validation support was added in AnyCA Gateway 26.2)
 - A gateway product that supports DNS-based domain validation (ACME REST Gateway, DigiCert, Sectigo, SSL Store, etc.)
 - **The gateway must run on Windows** (V1 uses the Windows WinRM PowerShell client)
 
-### Microsoft DNS Requirements
+### Microsoft DNS requirements
 
-1. A Windows Server DNS server (typically a domain controller) hosting the forward-lookup zone(s) for the domains being validated, with the **DNS Server role** installed (provides the `DnsServer` PowerShell module the plugin invokes).
+1. A Windows Server DNS server (typically a domain controller) hosting the forward-lookup zone(s) for the domains being validated, with the **DNS Server role** installed (this provides the `DnsServer` PowerShell module the plugin invokes on the server).
 2. **WinRM (WS-Management) enabled** on the DNS server and reachable from the gateway host (TCP 5985 for HTTP, 5986 for HTTPS).
-3. An identity with permission to manage DNS records — the gateway service account (via Kerberos/Negotiate, when no credentials are configured) or an explicit `AD_Username` / `AD_Password`. The account must be in **DnsAdmins** (or Domain Admins) or otherwise delegated DNS record management on the target zone.
+3. An identity with permission to manage DNS records on the server — either the gateway service account (via Kerberos/Negotiate, when no credentials are configured) or an explicit `AD_Username` / `AD_Password`. The account must be a member of **DnsAdmins** (or Domain Admins) or otherwise delegated DNS record management on the target zone.
 
 ### Configuration fields
 
@@ -83,17 +97,18 @@ When configuring a Domain Validation Configuration in the gateway UI, pick the v
 
 * V1 is **Windows-only** — the gateway host must be Windows because record management uses the WinRM PowerShell client.
 * The plugin sets the record TTL to 60 seconds.
-* Zones are discovered from the target server's hosted forward-lookup zones only; a record not covered by a hosted zone (with no `AD_Zone` override) fails with `No DNS zone hosted on server ... covers record`.
-* Each validator type manages only its own record type: `MicrosoftAdDomainValidator` reads/writes `TXT`, `MicrosoftAdCnameDomainValidator` reads/writes `CNAME`.
+* Zones are discovered from the target server's hosted forward-lookup zones only; a record whose domain is not covered by a hosted zone (and no `AD_Zone` override is set) fails with `No DNS zone hosted on server ... covers record`.
+* Each validator type manages only its own record type: `MicrosoftAdDomainValidator` reads/writes `TXT`, `MicrosoftAdCnameDomainValidator` reads/writes `CNAME`. Neither touches other record types.
+* The DNS server must have the `DnsServer` PowerShell module available (installed with the DNS Server role).
 
 ### Runtime Requirements
-- .NET 8 runtime on a Windows gateway host (V1 targets `net8.0-windows`)
+- .NET 10.0 runtime (provided by the gateway server)
 
 ## Installation
 
-This plugin is installed alongside any Keyfactor gateway server that supports DNS-based domain validation (ACME REST Gateway, DigiCert, Sectigo, SSL Store, etc.). The same DLL works with every supported gateway.
+This plugin is installed alongside any Keyfactor gateway server that supports DNS-01 domain validation (ACME REST Gateway, DigiCert, Sectigo, etc.). The same DLL works with every supported gateway.
 
-> See the official Keyfactor AnyCA Gateway REST installation documentation for the authoritative install instructions. The steps below are a general guide; defer to the official docs if they diverge.
+> See the official Keyfactor AnyCA Gateway REST installation documentation for the authoritative install instructions: **<TBD link from Sarah Duncan>**. The steps below are a general guide; defer to the official docs if they diverge.
 
 ### 1. Download the Plugin
 
@@ -101,41 +116,49 @@ Download the latest release from the [Releases](https://github.com/Keyfactor/mic
 
 ### 2. Copy the plugin DLLs to the gateway's Extensions folder
 
-On the Windows server hosting your gateway, unzip the release and copy the contents of the `net8.0` framework directory into the gateway's `Extensions` folder:
+On the server hosting your gateway, unzip the release and copy the contents of the `net10.0` directory into the gateway's `Extensions` folder.
+
+**Windows** (example path — substitute the gateway product folder for your install):
 
 ```text
-C:\Program Files\Keyfactor\<GatewayName>\AnyGatewayREST\net8.0\Extensions\
+C:\Program Files\Keyfactor\<GatewayName>\AnyGatewayREST\net10.0\Extensions\
 ```
 
-Replace `<GatewayName>` with the gateway you are installing into (e.g. `AcmeGwDns`, `DigiCert`, `Sectigo`, `SslStoreGw`).
+**Linux**:
+
+```text
+/opt/keyfactor/<gateway-name>/AnyGatewayREST/net10.0/Extensions/
+```
+
+Replace `<GatewayName>` (or `<gateway-name>` on Linux) with the gateway you are installing into (e.g. `AcmeGwDns`, `DigiCert`, `Sectigo`).
 
 ### 3. Restart the gateway service
 
-Restart the AnyGatewayREST service for the gateway you installed the plugin into so the Extensions folder is rescanned.
+Restart the AnyGatewayREST Windows service for the gateway you installed the plugin into so the Extensions folder is rescanned.
 
 ## Configuration
 
-After installing the plugin DLL into the gateway's Extensions folder, configure a new Domain Validation entry in the AnyCA Gateway REST UI and select **Microsoft Active Directory DNS** (`MicrosoftAdDomainValidator` for TXT/dns-01, or `MicrosoftAdCnameDomainValidator` for CNAME) as the provider type, then map it to the domain(s) it should manage.
+After installing the plugin DLL into the gateway's Extensions folder, configure a new DNS Provider entry in the AnyCA Gateway REST UI and select **Microsoft Active Directory** as the provider type. See the official Keyfactor AnyCA Gateway REST documentation for the canonical UI walkthrough: **<TBD link from Sarah Duncan>**.
 
 ### Configuration Parameters
 
 | Parameter | Description | Required | Example |
 |-----------|-------------|----------|---------|
-| `AD_DnsServer` | Hostname or FQDN of the Windows DNS server. | Yes | `dc01.corp.example.com` |
-| `AD_Username` | WinRM user (`DOMAIN\user` or `user@domain`). | No | `CORP\svc-keyfactor` |
-| `AD_Password` | Password for the username (stored as a secret). | No | ` ` |
-| `AD_Zone` | Explicit forward-lookup zone override. | No | `example.com` |
-| `AD_UseSSL` | Use WinRM over HTTPS (5986). | No | `false` |
+| `AD_DnsServer` | Hostname or FQDN of the Windows DNS server (typically a domain controller), reached over WinRM remote PowerShell. | Yes | ` ` |
+| `AD_Username` | User for the WinRM session, as DOMAIN\user or user@domain. Leave empty to use the gateway service account identity (Kerberos/Negotiate). | No | ` ` |
+| `AD_Password` | Password for the username. Required only when a username is supplied. Stored as a secret. | No | ` ` |
+| `AD_Zone` | Explicit forward-lookup zone to write records into. Leave empty to resolve the zone automatically by longest matching suffix of the record name. | No | ` ` |
+| `AD_UseSSL` | Use WinRM over HTTPS (port 5986) instead of HTTP (port 5985). 'true' or 'false' (default 'false'). | No | `false` |
 
 ### Example Configuration
 
 ```json
 {
-  "AD_DnsServer": "dc01.corp.example.com",
-  "AD_Username": "CORP\\svc-keyfactor",
+  "AD_DnsServer": "",
+  "AD_Username": "",
   "AD_Password": "",
   "AD_Zone": "",
-  "AD_UseSSL": "false"
+  "AD_UseSSL": ""
 }
 ```
 
@@ -145,27 +168,41 @@ After installing the plugin DLL into the gateway's Extensions folder, configure 
 
 Once configured, the plugin automatically handles DNS validation during certificate enrollment and renewal:
 
-1. **Record Creation**: the gateway calls the plugin to publish the validation record (TXT or CNAME) in the appropriate hosted zone on the DNS server.
-2. **Validation**: the CA verifies the record and issues the certificate.
-3. **Cleanup**: the gateway calls the plugin to remove the validation record once the order is issued.
+1. **Record Creation**: Plugin creates a DNS TXT record with the validation challenge
+2. **Propagation Wait**: Plugin waits for DNS propagation
+3. **Verification**: Plugin verifies the record exists on Microsoft Active Directory DNS nameservers
+4. **Cleanup**: Plugin deletes the validation record after successful validation
 
 ### Zone Discovery
 
-The plugin discovers the hosted zone for a domain by longest matching forward-lookup zone suffix on the target server:
+The plugin automatically discovers the appropriate DNS zone for a domain:
 
-- For `_acme-challenge.www.example.com`, a hosted zone for `example.com` is matched.
-- For `*.example.com`, the `example.com` zone is matched.
-
-Set `AD_Zone` to bypass discovery and write directly to a named zone.
+- For `www.example.com`, searches for zones: `www.example.com`, `example.com`
+- For `sub.example.com`, searches for zones: `sub.example.com`, `example.com`
+- For `*.example.com`, searches for zones: `example.com`
 
 ## Troubleshooting
 
 ### Common Issues
 
-- **WinRM connection failures**: verify WinRM is enabled on the DNS server (`Enable-PSRemoting`), the gateway host can reach TCP 5985/5986, and — for cross-domain or IP-address targets — that the target is in the gateway's WinRM `TrustedHosts` or HTTPS with a valid certificate is used.
-- **Authentication/permission failures**: confirm the configured credential (or gateway service account) is in **DnsAdmins**/Domain Admins or is delegated DNS management on the zone.
-- **Zone Not Found**: verify the target domain is covered by a forward-lookup zone hosted on `AD_DnsServer`, or set `AD_Zone` explicitly.
-- **`DnsServer` module missing**: ensure the target server has the DNS Server role (which provides the `DnsServer` PowerShell module).
+- **Authentication Failures**: Verify Microsoft Active Directory DNS credentials are valid, not expired, and authorized for the target zone.
+- **Insufficient Permissions**: Verify the account/role has the documented minimum permissions on the target DNS zone.
+- **Zone Not Found**: Verify the target DNS zone exists in your Microsoft Active Directory DNS account and is reachable from the gateway server.
+- **DNS Propagation Timeouts**: Check Microsoft Active Directory DNS service health; verify authoritative nameservers are responding.
+
+### Logging
+
+Enable debug logging in the gateway's logging configuration:
+
+```json
+{
+  "Logging": {
+    "LogLevel": {
+      "Keyfactor.Extensions.DomainValidator.MicrosoftAD": "Debug"
+    }
+  }
+}
+```
 
 ## Support
 
