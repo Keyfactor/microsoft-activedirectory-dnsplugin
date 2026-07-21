@@ -11,6 +11,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- Let the manual test harness drive the internal MicrosoftAdDnsProvider directly. -->
+    <InternalsVisibleTo Include="ManualTestHarness" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Keyfactor.AnyGateway.IAnyCAPlugin" Version="3.3.0" />
     <PackageReference Include="Keyfactor.Logging" Version="1.3.0" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.0" />
