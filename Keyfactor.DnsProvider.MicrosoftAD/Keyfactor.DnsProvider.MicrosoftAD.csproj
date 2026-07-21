@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <!-- V1 is Windows-only: record management runs over WinRM remote PowerShell (WSMan client is Windows-only). -->
-    <TargetFramework>net8.0-windows</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>disable</Nullable>
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
@@ -16,7 +16,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Keyfactor.AnyGateway.IAnyCAPlugin" Version="3.3.0-PRERELEASE-78770-979f582005" />
+    <PackageReference Include="Keyfactor.AnyGateway.IAnyCAPlugin" Version="3.3.0" />
     <PackageReference Include="Keyfactor.Logging" Version="1.3.0" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.0" />
     <PackageReference Include="System.Management.Automation" Version="7.4.6" />

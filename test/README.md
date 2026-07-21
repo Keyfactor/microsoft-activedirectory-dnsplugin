@@ -69,7 +69,7 @@ appear and disappear on the server.
 Only needed to prove issuance with a real CA, and only meaningful if the zone is
 publicly resolvable:
 
-1. Build the plugin (`dotnet build -c Release`) and copy the `net8.0` output into
+1. Build the plugin (`dotnet build -c Release`) and copy the `net10.0` output into
    the gateway's `Extensions` folder (see the root `README.md`).
 2. Restart the AnyGatewayREST service.
 3. In the gateway UI, add a Domain Validation entry, pick **Microsoft Active
