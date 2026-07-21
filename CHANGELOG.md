@@ -1,5 +1,5 @@
 1.0.0
-* Initial release of the Microsoft Active Directory DNS plugin for Keyfactor AnyCA Gateway domain validation
+* Initial release of the Microsoft Active Directory DNS plugin for Keyfactor AnyCA Gateway domain validation 
 * Implements `IDomainValidator` against Microsoft Windows Server DNS via the built-in `DnsServer` PowerShell cmdlets, run on the target server over WinRM remote PowerShell (Windows-only)
 * Ships two validator types: `MicrosoftAdDomainValidator` (dns-01 / TXT) and `MicrosoftAdCnameDomainValidator` (cname / CNAME)
 * Authenticates with an explicit WinRM username/password or the gateway service account identity (Kerberos/Negotiate); optional WinRM over HTTPS
