@@ -82,15 +82,13 @@ The owning zone for a given FQDN is resolved by listing the server's forward-loo
 
 ## Usage
 
-### Testing
-
-There are three levels of testing, each isolating a different layer of the stack. See [test/README.md](test/README.md) for full details; summarized here:
+**Testing.** There are three levels of testing, each isolating a different layer of the stack. See [test/README.md](test/README.md) for full details; summarized here:
 
 1. **Infra smoke test** (`test/smoke-test.ps1`) — pure PowerShell, no plugin code. Confirms WinRM reachability, the `DnsServer` module, and the target zone from the machine that will host the gateway.
 2. **Provider harness** (`test/ManualTestHarness`) — drives `MicrosoftAdDnsProvider` directly (no gateway, no CA). Exercises TXT create/delete, additive multi-value TXT, targeted delete, CNAME create/delete, and idempotent cleanup against a real DNS server.
 3. **Full gateway + CA integration** — a real enrollment through the gateway, a CA, and this plugin together. This is the only level that proves the domain validator is wired up correctly end-to-end (gateway config → CA → DNS-01 challenge → this plugin → DNS server → CA re-check → issuance).
 
-### Level 3 against an internal-only zone (e.g. Active Directory `.local` / `.corp`)
+**Testing against an internal-only zone (e.g. Active Directory `.local` / `.corp`).**
 
 Public ACME CAs (Let's Encrypt, Google Trust Services, etc.) **reject internal/non-public zones outright** — the order fails at `CreateOrder` with `rejectedIdentifier` / `"Domain must end in a public suffix"` before DNS validation is ever attempted, because `.local`-style names aren't ICANN-delegated public suffixes. This is a CA-side policy check, not a DNS or plugin problem, and it means a public CA can never be used to test this plugin against an internal AD zone.
 
