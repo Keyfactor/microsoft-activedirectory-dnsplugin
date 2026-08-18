@@ -80,17 +80,15 @@ The owning zone for a given FQDN is resolved by listing the server's forward-loo
 * Each validator type manages only its own record type: `MicrosoftAdDomainValidator` reads/writes `TXT`, `MicrosoftAdCnameDomainValidator` reads/writes `CNAME`. Neither touches other record types.
 * The DNS server must have the `DnsServer` PowerShell module available (installed with the DNS Server role).
 
-## Usage
+### Testing
 
-**Testing.** There are three levels of testing, each isolating a different layer of the stack. See [test/README.md](test/README.md) for full details; summarized here:
+There are three levels of testing, each isolating a different layer of the stack. See [test/README.md](test/README.md) for full details; summarized here:
 
 1. **Infra smoke test** (`test/smoke-test.ps1`) — pure PowerShell, no plugin code. Confirms WinRM reachability, the `DnsServer` module, and the target zone from the machine that will host the gateway.
 2. **Provider harness** (`test/ManualTestHarness`) — drives `MicrosoftAdDnsProvider` directly (no gateway, no CA). Exercises TXT create/delete, additive multi-value TXT, targeted delete, CNAME create/delete, and idempotent cleanup against a real DNS server.
 3. **Full gateway + CA integration** — a real enrollment through the gateway, a CA, and this plugin together. This is the only level that proves the domain validator is wired up correctly end-to-end (gateway config → CA → DNS-01 challenge → this plugin → DNS server → CA re-check → issuance).
 
-**Testing against an internal-only zone (e.g. Active Directory `.local` / `.corp`).**
-
-Public ACME CAs (Let's Encrypt, Google Trust Services, etc.) **reject internal/non-public zones outright** — the order fails at `CreateOrder` with `rejectedIdentifier` / `"Domain must end in a public suffix"` before DNS validation is ever attempted, because `.local`-style names aren't ICANN-delegated public suffixes. This is a CA-side policy check, not a DNS or plugin problem, and it means a public CA can never be used to test this plugin against an internal AD zone.
+Public ACME CAs (Let's Encrypt, Google Trust Services, etc.) **reject internal/non-public zones outright** — the order fails at `CreateOrder` with `rejectedIdentifier` / `"Domain must end in a public suffix"` before DNS validation is ever attempted, because `.local`-style names aren't ICANN-delegated public suffixes. This is a CA-side policy check, not a DNS or plugin problem, and it means a public CA can never be used to test level 3 against an internal AD zone.
 
 To test level 3 against an internal zone (e.g. `command.local`), point the gateway's CA connector at a **private ACME server** instead — [step-ca](https://smallstep.com/docs/step-ca/) works well and doesn't enforce public-suffix rules. See [test/README.md](test/README.md#step-3b--full-gateway-integration-against-an-internal-zone-with-a-private-acme-ca-step-ca) for a full step-ca setup and DNS-resolution troubleshooting walkthrough, including two gotchas that are easy to lose time to:
 
