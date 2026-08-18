@@ -126,6 +126,21 @@ The owning zone for a given FQDN is resolved by listing the server's forward-loo
 * Each validator type manages only its own record type: `MicrosoftAdDomainValidator` reads/writes `TXT`, `MicrosoftAdCnameDomainValidator` reads/writes `CNAME`. Neither touches other record types.
 * The DNS server must have the `DnsServer` PowerShell module available (installed with the DNS Server role).
 
+### Testing
+
+There are three levels of testing, each isolating a different layer of the stack. See [test/README.md](test/README.md) for full details; summarized here:
+
+1. **Infra smoke test** (`test/smoke-test.ps1`) — pure PowerShell, no plugin code. Confirms WinRM reachability, the `DnsServer` module, and the target zone from the machine that will host the gateway.
+2. **Provider harness** (`test/ManualTestHarness`) — drives `MicrosoftAdDnsProvider` directly (no gateway, no CA). Exercises TXT create/delete, additive multi-value TXT, targeted delete, CNAME create/delete, and idempotent cleanup against a real DNS server.
+3. **Full gateway + CA integration** — a real enrollment through the gateway, a CA, and this plugin together. This is the only level that proves the domain validator is wired up correctly end-to-end (gateway config → CA → DNS-01 challenge → this plugin → DNS server → CA re-check → issuance).
+
+Public ACME CAs (Let's Encrypt, Google Trust Services, etc.) **reject internal/non-public zones outright** — the order fails at `CreateOrder` with `rejectedIdentifier` / `"Domain must end in a public suffix"` before DNS validation is ever attempted, because `.local`-style names aren't ICANN-delegated public suffixes. This is a CA-side policy check, not a DNS or plugin problem, and it means a public CA can never be used to test level 3 against an internal AD zone.
+
+To test level 3 against an internal zone (e.g. `command.local`), point the gateway's CA connector at a **private ACME server** instead — [step-ca](https://smallstep.com/docs/step-ca/) works well and doesn't enforce public-suffix rules. See [test/README.md](test/README.md#step-3b--full-gateway-integration-against-an-internal-zone-with-a-private-acme-ca-step-ca) for a full step-ca setup and DNS-resolution troubleshooting walkthrough, including two gotchas that are easy to lose time to:
+
+* The gateway's own DNS-propagation pre-check defaults to public resolvers (8.8.8.8, 1.1.1.1, etc.), which can never see an internal zone. Point it at an internal DNS server via the CA connector's `DnsVerificationServer` setting.
+* The ACME server itself (step-ca) does its **own independent** DNS lookup when validating the challenge — it must be able to resolve the internal zone through its own OS-level resolver, entirely separately from whether the gateway or this plugin can. A DNS-01 order can appear to stage and submit correctly and still hang at `pending` forever if the ACME server's host can't resolve the internal zone.
+
 ### Runtime Requirements
 - .NET 10.0 runtime (provided by the gateway server)
 
