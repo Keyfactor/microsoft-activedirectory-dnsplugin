@@ -55,7 +55,9 @@ The owning zone for a given FQDN is resolved by listing the server's forward-loo
 * Each validator type manages only its own record type: `MicrosoftAdDomainValidator` reads/writes `TXT`, `MicrosoftAdCnameDomainValidator` reads/writes `CNAME`. Neither touches other record types.
 * The DNS server must have the `DnsServer` PowerShell module available (installed with the DNS Server role).
 
-## Testing
+## Usage
+
+### Testing
 
 There are three levels of testing, each isolating a different layer of the stack. See [test/README.md](test/README.md) for full details; summarized here:
 
