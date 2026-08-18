@@ -2,8 +2,8 @@
 # Licensed under the Apache License, Version 2.0
 #
 # Pre-flight smoke test for the Microsoft AD DNS provider.
-# Verifies the SAME environment the plugin needs — WinRM remote PowerShell to the
-# DNS server plus the DnsServer module cmdlets — WITHOUT the plugin or the gateway.
+# Verifies the SAME environment the plugin needs - WinRM remote PowerShell to the
+# DNS server plus the DnsServer module cmdlets - WITHOUT the plugin or the gateway.
 # Run this from the machine that will host the gateway (or your dev box) BEFORE the
 # .NET harness, so you can tell infrastructure problems apart from code problems.
 #
@@ -31,7 +31,7 @@ Write-Host " OK"
 try {
     Write-Host "2. DnsServer module present on target ..." -NoNewline
     $hasModule = Invoke-Command -Session $session { [bool](Get-Module -ListAvailable DnsServer) }
-    if (-not $hasModule) { throw "DnsServer module NOT found — install the DNS Server role/RSAT on $DnsServer." }
+    if (-not $hasModule) { throw "DnsServer module NOT found - install the DNS Server role/RSAT on $DnsServer." }
     Write-Host " OK"
 
     Write-Host "3. Zone '$Zone' is hosted on target ..." -NoNewline
@@ -66,7 +66,7 @@ try {
     }
     Write-Host " OK"
 
-    Write-Host "`nSMOKE TEST PASSED — the plugin's environment prerequisites are satisfied." -ForegroundColor Green
+    Write-Host "`nSMOKE TEST PASSED - the plugin's environment prerequisites are satisfied." -ForegroundColor Green
 }
 finally {
     Remove-PSSession $session
