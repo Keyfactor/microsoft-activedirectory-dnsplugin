@@ -4,7 +4,7 @@
 
 <p align="center">
   <!-- Badges -->
-<img src="https://img.shields.io/badge/integration_status-pilot-3D1973?style=flat-square" alt="Integration Status: pilot" />
+<img src="https://img.shields.io/badge/integration_status-production-3D1973?style=flat-square" alt="Integration Status: production" />
 <a href="https://github.com/Keyfactor/microsoft-activedirectory-dnsplugin/actions/workflows/keyfactor-starter-workflow.yml"><img src="https://github.com/Keyfactor/microsoft-activedirectory-dnsplugin/actions/workflows/keyfactor-starter-workflow.yml/badge.svg" alt="Build" /></a>
 <a href="https://github.com/Keyfactor/microsoft-activedirectory-dnsplugin/releases"><img src="https://img.shields.io/github/v/release/Keyfactor/microsoft-activedirectory-dnsplugin?style=flat-square" alt="Release" /></a>
 <img src="https://img.shields.io/github/issues/Keyfactor/microsoft-activedirectory-dnsplugin?style=flat-square" alt="Issues" />
@@ -246,7 +246,7 @@ Enable debug logging in the gateway's logging configuration:
 
 ## Support
 
-The Microsoft Active Directory DNS Provider plugin is open source and there is **no SLA**. Keyfactor will address issues as resources become available. Keyfactor customers may request escalation by opening a support ticket through their Keyfactor representative.
+The Microsoft Active Directory DNS Provider plugin is supported by Keyfactor for Keyfactor customers. If you have a support issue, please open a support ticket via the Keyfactor Support Portal at https://support.keyfactor.com.
 
 ### Resources
 
